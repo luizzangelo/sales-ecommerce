@@ -33,9 +33,10 @@ df_produtos["categoria-nome-nivel-1"] = df_produtos["categoria-nome-nivel-1"].fi
 # 6. Preenche faltantes com texto padrão
 df_produtos["nome"] = df_produtos["nome"].fillna("NOME NÃO ENCONTRADO")
 df_produtos["categoria-nome-nivel-1"] = df_produtos["categoria-nome-nivel-1"].fillna("CATEGORIA NÃO ENCONTRADA")
+df_produtos = df_produtos.rename(columns={'id': 'id_produto', 'categoria-nome-nivel-1': 'categoria','sku-pai': 'sku_pai'})
 
 # 7. Seleciona colunas finais para a dimensão produto
-df_dim_produto = df_produtos[["id", "sku-pai", "sku", "nome", "categoria-nome-nivel-1"]].copy()
+df_dim_produto = df_produtos[["id_produto", "sku_pai", "sku", "nome", "categoria"]].copy()
 
 print("\n✅ Dimensão produto tratada:")
 #print(df_dim_produto.head(10))
@@ -79,7 +80,6 @@ print("\n✅ Fato vendas criado:")
 # TRATAR A DIMENSÃO CLIENTE
 # Normaliza nome de colunas para trabalhar apenas com as relevantes
 colunas_cliente = [
-    "id",
     "email",
     "nome",
     "data-nascimento",
@@ -99,6 +99,8 @@ df_dim_cliente = df_clientes[colunas_cliente].copy()
 # Converte colunas de data
 df_dim_cliente["data-nascimento"] = pd.to_datetime(df_dim_cliente["data-nascimento"], errors="coerce", dayfirst=True)
 df_dim_cliente["data-criacao"] = pd.to_datetime(df_dim_cliente["data-criacao"], errors="coerce", dayfirst=True)
+df_dim_cliente = df_dim_cliente.rename(columns={'data-nascimento': 'data_nascimento', 'telefone-celular': 'telefone_celular','data-criacao': 'data_criacao'})
+df_dim_cliente = df_dim_cliente.drop_duplicates(subset=["cpf"])
 
 print("\n✅ Dimensão cliente criada:")
 #print(df_dim_cliente.head(3))
