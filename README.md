@@ -68,14 +68,14 @@ The model follows a Data Warehouse best-practice, with client and product dimens
 
 ### What each folder/file means:
 
-- **data/import_manual/**: Place here the files you export directly from the ecommerce platform (in Excel, CSV, etc).
+- **data/import_manual/**: Ecommerce platform files.
 - **data/staging/**: Intermediate step – the files here have unified columns, fixed encodings, etc. Used for reproducibility.
 - **data/processed/**: These are the files after all data cleaning. They are ready to be loaded into the database.
 - **scripts/etl/load_staging.py**: Reads and standardizes the raw exports.
 - **scripts/etl/transform.py**: Cleans, validates, deduplicates, and prepares all data, handling real-life errors and inconsistencies.
 - **scripts/etl/load_to_db.py**: Loads the final data into the database, making sure referential integrity and all keys are respected.
 - **ddl.sql**: The database schema definition (tables, columns, constraints, keys).
-- **.env**: Place for your DB connection string and sensitive info (never commit secrets in public repos!).
+- **.env**: Place for DB connection string and sensitive info (never commit secrets in public repos!).
 - **README.md**: This guide and project summary.
 
 ---
