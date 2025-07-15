@@ -35,7 +35,7 @@ CREATE TABLE dim_produto (
 -- =====================
 CREATE TABLE fato_vendas (
     id                             SERIAL PRIMARY KEY,
-    pedido_numero                  TEXT         NOT NULL,
+    pedido_numero                  INT         NOT NULL,
     cpf_cliente                    CHAR(11)     NOT NULL REFERENCES dim_cliente(cpf),
     cliente_email                  TEXT,
     pedido_situacao                TEXT,

@@ -144,6 +144,7 @@ os.makedirs('data/processed', exist_ok=True)
 df_dim_produto.to_csv('data/processed/dim_produto.csv', index=False)
 df_dim_cliente.to_csv('data/processed/dim_cliente.csv', index=False)
 df_fato_vendas.to_csv('data/processed/fato_vendas.csv', index=False)
+print("\n✅ Arquivos salvos em data/processed/")
 
 # checa quais produto_id da fato_vendas NÃO existem em dim_produto:
 #df_fato_vendas = pd.read_csv("data/processed/fato_vendas.csv")
@@ -152,6 +153,3 @@ df_fato_vendas.to_csv('data/processed/fato_vendas.csv', index=False)
 #ids_invalidos = set(df_fato_vendas['produto_id']) - set(df_dim_produto['id_produto'])
 #print("IDs de produto que não existem na dimensão de produtos:", ids_invalidos)
 #print("Total de produtos não encontrados:", len(ids_invalidos))
-
-print("\n✅ Arquivos salvos em data/processed/")
-
