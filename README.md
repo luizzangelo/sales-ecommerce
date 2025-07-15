@@ -51,7 +51,7 @@ During this project, several real-world data quality issues had to be solved, in
 
 ## 💾 Relational Modeling (DDL)
 
-The model follows a Data Warehouse best-practice, with client and product dimensions and a fact table for sales, including foreign keys for referential integrity. [See the full DDL in `ddl.sql`.](./ddl.sql)
+The model follows a Data Warehouse best-practice, with client and product dimensions and a fact table for sales, including foreign keys for referential integrity. [See the full DDL in `ddl.sql`.](./db/migrations/ddl.sql)
 
 ---
 
