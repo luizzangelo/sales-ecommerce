@@ -42,51 +42,50 @@ print("\n✅ Dimensão produto tratada:")
 #print(df_dim_produto.head(10))
 
 # TRATAR OS PEDIDOS
-from tabulate import tabulate
-import ast
+#from tabulate import tabulate
 import json
 
 linhas = []
 
 for idx, row in df_pedidos.iterrows():
     try:
-        lista_de_strings = ast.literal_eval(row['ITEMS_JSON'])
-        for item_str in lista_de_strings:
-            item = json.loads(item_str)
+        lista_itens = json.loads(row['ITEMS_JSON'])  # <-- Corrigido
+        for item in lista_itens:
             linhas.append({
-                'pedido_numero'                   : row['PEDIDO_NUMERO'],
-                'cpf_cliente'                     : row['ENDERECO_ENTREGA_CPF'],
-                'cliente_email'                   : row['CLIENTE_EMAIL'],
-                'pedido_situacao'                 : row['PEDIDO_SITUACAO'],
-                'pagamento_nome'                  : row['PAGAMENTO_NOME'],
-                'envio_nome'                      : row['ENVIO_NOME'],
-                'valor_subtotal'                  : row['PEDIDO_VALOR_SUBTOTAL'],
-                'valor_envio'                     : row['PEDIDO_VALOR_ENVIO'],
-                'valor_desconto'                  : row['PEDIDO_VALOR_DESCONTO'],
-                'valor_total'                     : row['PEDIDO_VALOR_TOTAL'],
-                'peso_real'                       : row['PEDIDO_PESO_REAL'],
-                'data_criacao'                    : pd.to_datetime(row['PEDIDO_DATA_CRIACAO'], dayfirst=True, utc=True),
-                'endereco_entrega_nome'           : row['ENDERECO_ENTREGA_NOME'],
-                'endereco_entrega_telefone_celular': row['ENDERECO_ENTREGA_TELEFONE_CELULAR'],
-                'endereco_entrega_logradouro'     : row['ENDERECO_ENTREGA_ENDERECO'],
-                'endereco_entrega_numero'         : row['ENDERECO_ENTREGA_NUMERO'],
-                'endereco_entrega_bairro'         : row['ENDERECO_ENTREGA_BAIRRO'],
-                'endereco_entrega_cidade'         : row['ENDERECO_ENTREGA_CIDADE'],
-                'endereco_entrega_cep'            : row['ENDERECO_ENTREGA_CEP'],
-                'produto_id'                      : item.get('produto_id'),
-                'produto_nome'                    : item.get('produto_nome'),
-                'produto_sku'                     : item.get('produto_sku'),
-                'quantidade'                      : item.get('quantidade', 1),
-                'preco_venda'                     : item.get('preco_venda', 0),
-                'preco_promocional'               : item.get('preco_promocional', 0),
-                'preco_custo'                     : item.get('preco_custo', 0),
+                'pedido_numero': row['PEDIDO_NUMERO'],
+                'cpf_cliente': row['ENDERECO_ENTREGA_CPF'],
+                'cliente_email': row['CLIENTE_EMAIL'],
+                'pedido_situacao': row['PEDIDO_SITUACAO'],
+                'pagamento_nome': row['PAGAMENTO_NOME'],
+                'envio_nome': row['ENVIO_NOME'],
+                'valor_subtotal': row['PEDIDO_VALOR_SUBTOTAL'],
+                'valor_envio': row['PEDIDO_VALOR_ENVIO'],
+                'valor_desconto': row['PEDIDO_VALOR_DESCONTO'],
+                'valor_total': row['PEDIDO_VALOR_TOTAL'],
+                'peso_real': row['PEDIDO_PESO_REAL'],
+                'data_criacao': pd.to_datetime(row['PEDIDO_DATA_CRIACAO'], dayfirst=True, utc=True),
+                'endereco_entrega_nome': row['ENDERECO_ENTREGA_NOME'],
+                'endereco_entrega_telefone_celular': row['CLIENTE_TELEFONE_CELULAR'],
+                'endereco_entrega_logradouro': row['ENDERECO_ENTREGA_ENDERECO'],
+                'endereco_entrega_numero': row['ENDERECO_ENTREGA_NUMERO'],
+                'endereco_entrega_bairro': row['ENDERECO_ENTREGA_BAIRRO'],
+                'endereco_entrega_cidade': row['ENDERECO_ENTREGA_CIDADE'],
+                'endereco_entrega_cep': row['ENDERECO_ENTREGA_CEP'],
+                'produto_id': item.get('produto_id'),
+                'produto_nome': item.get('nome'),
+                'produto_sku': item.get('sku'),
+                'quantidade': item.get('quantidade', 1),
+                'preco_venda': item.get('preco_venda', 0),
+                'preco_promocional': item.get('preco_promocional', 0),
+                'preco_custo': item.get('preco_custo', 0),
             })
     except Exception as e:
         print(f"Erro na linha {idx}: {e}")
+        print(row['ITEMS_JSON'])
 
 df_fato_vendas = pd.DataFrame(linhas)
 
-# Tratar as colunas numéricas (vírgula -> ponto, converte para float)
+# Tratamento numérico
 cols_numericas = [
     'valor_subtotal', 'valor_envio', 'valor_desconto', 'valor_total', 'peso_real',
     'preco_venda', 'preco_promocional', 'preco_custo'
@@ -96,12 +95,13 @@ for col in cols_numericas:
         df_fato_vendas[col] = (
             df_fato_vendas[col]
                 .astype(str)
-                .str.strip()         # <-- Remove espaços extras!
+                .str.strip()
                 .str.replace(',', '.', regex=False)
                 .replace('nan', None)
                 .astype(float)
         )
 
+# Filtro final
 df_fato_vendas = df_fato_vendas[df_fato_vendas['produto_id'].isin(df_dim_produto['id_produto'])]
 
 print("\n✅ Fato vendas criado:")
