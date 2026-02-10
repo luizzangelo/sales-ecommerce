@@ -27,7 +27,8 @@ CREATE TABLE dim_produto (
     sku_pai           TEXT,
     sku               TEXT        UNIQUE NOT NULL,
     nome              TEXT        NOT NULL,
-    categoria         TEXT
+    categoria         TEXT,
+    estoque_quantidade INT
 );
 
 -- =====================
