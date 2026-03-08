@@ -39,7 +39,7 @@ df_produtos = df_produtos.rename(columns={'id': 'id_produto', 'categoria-nome-ni
 df_dim_produto = df_produtos[["id_produto", "sku_pai", "sku", "nome", "categoria","estoque-quantidade"]].copy()
 
 print("\n✅ Dimensão produto tratada:")
-print(df_dim_produto.head(10))
+#print(df_dim_produto.head(10))
 
 # TRATAR OS PEDIDOS
 #from tabulate import tabulate
