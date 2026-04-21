@@ -56,63 +56,79 @@ def format_currency(value):
 # KPIs principais
 col1, col2, col3, col4 = st.columns(4)
 
-#card 1
-faturamento_mensal_atual = df_filtrado[
-    (df_filtrado['data_criacao'].dt.month==hoje.month)&
-    (df_filtrado['data_criacao'].dt.year==hoje.year)
-]['valor_venda'].sum()
+# função de filtro por mês/ano
+def filtro_mes_ano(df, coluna_data, mes, ano):
+    return df[
+        (df[coluna_data].dt.month == mes) &
+        (df[coluna_data].dt.year == ano)
+    ]
+
+# função de cálculo de delta (%)
+def calcular_delta(valor_atual, valor_anterior):
+    if valor_anterior != 0:
+        return (valor_atual - valor_anterior) / valor_anterior * 100
+    return 0
+
+
+# mês atual
+mes_atual = hoje.month
+ano_atual = hoje.year
 
 # mês anterior (tratando virada de ano)
 mes_anterior = hoje.month - 1 if hoje.month > 1 else 12
 ano_mes_anterior = hoje.year if hoje.month > 1 else hoje.year - 1
 
-faturamento_anterior = df_filtrado[
-    (df_filtrado['data_criacao'].dt.month == mes_anterior) &
-    (df_filtrado['data_criacao'].dt.year == ano_mes_anterior)
-]['valor_venda'].sum()
+#card 1
+faturamento_mensal_atual = filtro_mes_ano(
+    df_filtrado, 'data_criacao', mes_atual, ano_atual
+)['valor_venda'].sum()
 
-# cálculo do delta faturamento mensal (%)
-delta = 0
-if faturamento_anterior != 0:
-    delta = (faturamento_mensal_atual - faturamento_anterior) / faturamento_anterior * 100
+faturamento_anterior = filtro_mes_ano(
+    df_filtrado, 'data_criacao', mes_anterior, ano_mes_anterior
+)['valor_venda'].sum()
 
-#card 2 - total de pedidos --> df['coluna'].nunique(): Retorna a contagem de únicos: 3
-qtdpedidos_mensal_atual = df_filtrado[
-    (df_filtrado['data_criacao'].dt.month == hoje.month) &
-    (df_filtrado['data_criacao'].dt.year == hoje.year)
-]['pedido_numero'].nunique()
+delta = calcular_delta(
+    faturamento_mensal_atual,
+    faturamento_anterior
+)
 
-qtdpedidos_mes_anterior = df_filtrado[
-    (df_filtrado['data_criacao'].dt.month == mes_anterior) &
-    (df_filtrado['data_criacao'].dt.year == ano_mes_anterior)
-]['pedido_numero'].nunique()
+#card 2
+qtdpedidos_mensal_atual = filtro_mes_ano(
+    df_filtrado, 'data_criacao', mes_atual, ano_atual
+)['pedido_numero'].nunique()
 
-delta2 = 0
-if qtdpedidos_mes_anterior != 0:
-    delta2 = (qtdpedidos_mensal_atual - qtdpedidos_mes_anterior) / qtdpedidos_mes_anterior * 100
+qtdpedidos_mes_anterior = filtro_mes_ano(
+    df_filtrado, 'data_criacao', mes_anterior, ano_mes_anterior
+)['pedido_numero'].nunique()
 
-#card 3 - ticket medio
+delta2 = calcular_delta(
+    qtdpedidos_mensal_atual,
+    qtdpedidos_mes_anterior
+)
+
+#card 3
 ticket_medio_atual = faturamento_mensal_atual / qtdpedidos_mensal_atual
 ticket_medio_anterior = faturamento_anterior / qtdpedidos_mes_anterior
 
-delta3=0
-if ticket_medio_anterior != 0:
-    delta3 = (ticket_medio_atual - ticket_medio_anterior) / ticket_medio_anterior * 100
+delta3 = calcular_delta(
+    ticket_medio_atual,
+    ticket_medio_anterior
+)
 
-#card 4 - total de produtos
-total_produtos_mes_atual = df_pedidos[
-    (df_pedidos['data_criacao'].dt.month == hoje.month) &
-    (df_pedidos['data_criacao'].dt.year == hoje.year)
-]['quantidade'].sum()
+#card 4
+total_produtos_mes_atual = filtro_mes_ano(
+    df_pedidos, 'data_criacao', mes_atual, ano_atual
+)['quantidade'].sum()
 
-total_produtos_mes_anterior = df_pedidos[
-    (df_pedidos['data_criacao'].dt.month == mes_anterior) &
-    (df_pedidos['data_criacao'].dt.year == ano_mes_anterior)
-]['quantidade'].sum()
+total_produtos_mes_anterior = filtro_mes_ano(
+    df_pedidos, 'data_criacao', mes_anterior, ano_mes_anterior
+)['quantidade'].sum()
 
-delta4=0
-if total_produtos_mes_anterior != 0:
-    delta4 = (total_produtos_mes_atual - total_produtos_mes_anterior) / total_produtos_mes_anterior * 100
+delta4 = calcular_delta(
+    total_produtos_mes_atual,
+    total_produtos_mes_anterior
+)
+delta4 = (total_produtos_mes_atual - total_produtos_mes_anterior) / total_produtos_mes_anterior * 100
 
 with col1:
     st.metric(
@@ -130,7 +146,7 @@ with col2:
 
 with col3:
     st.metric(
-        label="🎯 Ticket Médio",
+        label="🎯 Ticket Médio Mês Atual",
         value=format_currency(ticket_medio_atual),
         delta=f"{delta3:.2f}%"
     )
@@ -142,11 +158,10 @@ with col4:
         delta=f"{delta4:.2f}%"
     )
 
-
+#primeiro grafico
 df_last12 = (df_filtrado.groupby(['data_formatada'], as_index=False)['valor_venda']).sum()
 
-
-fig_faturamento = px.bar(
+fig_faturamento_last12 = px.bar(
     df_last12,
     x='data_formatada',
     y='valor_venda',
@@ -158,16 +173,20 @@ fig_faturamento = px.bar(
     }
 )
 
-fig_faturamento.update_traces(
+fig_faturamento_last12.update_yaxes(range=[0, 40000])
+
+fig_faturamento_last12.update_traces(
     texttemplate='R$ %{text:,.2f}',  # formato monetário
     textposition='outside',
     textfont=dict(size=14)
 )
 
-fig_faturamento.update_layout(
+fig_faturamento_last12.update_layout(
     title_x=0.5
 )
 
-st.plotly_chart(fig_faturamento, use_container_width=True)
+st.plotly_chart(fig_faturamento_last12, use_container_width=True)
 
+#segunda linha de graficos
+col1, col2, col3 = st.columns(3)
 
