@@ -1,58 +1,173 @@
-import streamlit as st
-import plotly.express as px
 import pandas as pd
-from sqlalchemy import create_engine
-from dotenv import load_dotenv
-import os
-from pathlib import Path
+import plotly.express as px
+import streamlit as st
+from datetime import datetime
 
-#conexao ao banco postgres local
-env_path = Path(__file__).resolve().parents[1] / "scripts" / "etl" / ".env"
-load_dotenv(env_path)
-CONN_STRING = os.getenv("DB_CONN_STRING")
-engine = create_engine(CONN_STRING)
+# Configuração da página
+st.set_page_config(
+    page_title="Dashboard E-commerce",
+    page_icon="🛒",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-#acesso as views no banco
-df = pd.read_sql("SELECT * FROM vw_total_vendido_meio_pagamento", engine)
-df["pagamento_nome"] = df["pagamento_nome"].replace("MercadoPago V1", "Mercado Pago")
-df = df.groupby("pagamento_nome", as_index=False)["total_vendido"].sum()
-df = df.sort_values("total_vendido", ascending=False)
+# Header principal
+st.markdown(
+    '<h1 class="main-header" style="text-align: center;">🛒 Dashboard de Vendas E-commerce</h1>',
+    unsafe_allow_html=True
+)
 
-df2 = pd.read_sql("SELECT * FROM vw_top_bairros_mais_clientes", engine)
+hoje = datetime.today()
 
-df3 = pd.read_sql("SELECT * FROM vw_total_vendido_mes", engine)
+df_pedidos = pd.read_csv('data/processed/fato_vendas.csv')
 
-df4 = pd.read_sql("SELECT * FROM vw_total_pedidos_meio_pagamento", engine)
+df_pedidos['data_criacao'] = pd.to_datetime(df_pedidos['data_criacao'], errors='coerce', utc=True)
 
-df5 = pd.read_sql("SELECT * FROM vw_ticket_medio_clientes", engine)
+df_pedidos = df_pedidos[~df_pedidos['pedido_situacao'].isin(['Pedido Cancelado','Pagamento devolvido'])]
 
-df6 = pd.read_sql("SELECT * FROM vw_top_categorias", engine)
+for col in ['valor_total', 'valor_envio']:
+    if col in df_pedidos.columns:
+        df_pedidos[col] = (
+            df_pedidos[col]
+            .astype(str)
+            .str.strip()
+            .str.replace(',', '.', regex=False)
+            .replace('nan', None)
+            .astype(float)
+        )
 
-df7 = pd.read_sql("SELECT * FROM vw_tempo_medio_entre_pedidos", engine)
+# remove duplicados primeiro
+df_filtrado = df_pedidos.drop_duplicates(subset=['pedido_numero']).copy()
 
-df8 = pd.read_sql("SELECT * from vw_qtd_faixa_etaria", engine)
+# cria valor_venda
+df_filtrado['valor_venda'] = df_filtrado['valor_total'] - df_filtrado['valor_envio']
 
-df9 = pd.read_sql("select * from vw_venda_tipo_envio", engine)
+# filtra últimos 12 meses
+data_corte = pd.Timestamp.now(tz='UTC') - pd.DateOffset(months=12)
+df_filtrado = df_filtrado[df_filtrado['data_criacao'] >= data_corte].copy()
 
-st.set_page_config(layout="wide")
+# cria a coluna depois do filtro final
+df_filtrado['data_formatada'] = df_filtrado['data_criacao'].dt.strftime('%Y/%m')
 
-col1, col2 = st.columns(2)
+#funcao formatar moeda
+def format_currency(value):
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-fig_faturamento = px.bar(df3, x="ano_mes", y="total_vendido",color_discrete_sequence=["green"], title="Faturamento mensal")
-fig_faturamento
+# KPIs principais
+col1, col2, col3, col4 = st.columns(4)
 
-fig_meio_pagamento = px.bar(df, x="pagamento_nome", y="total_vendido",title="Total vendido por Meio de Pagamento")
-col1.plotly_chart(fig_meio_pagamento)
+#card 1
+faturamento_mensal_atual = df_filtrado[
+    (df_filtrado['data_criacao'].dt.month==hoje.month)&
+    (df_filtrado['data_criacao'].dt.year==hoje.year)
+]['valor_venda'].sum()
 
-df2 = df2.sort_values("total_cliente", ascending=True)
-fig_bairros = px.bar(df2, x="total_cliente", y="bairro",title="Top bairros", orientation="h",color="total_cliente",color_continuous_scale="Greens")
-col2.plotly_chart(fig_bairros)
+# mês anterior (tratando virada de ano)
+mes_anterior = hoje.month - 1 if hoje.month > 1 else 12
+ano_mes_anterior = hoje.year if hoje.month > 1 else hoje.year - 1
 
-col3, col4 = st.columns(2)
+faturamento_anterior = df_filtrado[
+    (df_filtrado['data_criacao'].dt.month == mes_anterior) &
+    (df_filtrado['data_criacao'].dt.year == ano_mes_anterior)
+]['valor_venda'].sum()
 
-fig_faixa_etaria = px.bar(df8, x="faixa_etaria", y="qtd_clientes",title="Total Cliente por faixa etaria")
-col3.plotly_chart(fig_faixa_etaria)
+# cálculo do delta faturamento mensal (%)
+delta = 0
+if faturamento_anterior != 0:
+    delta = (faturamento_mensal_atual - faturamento_anterior) / faturamento_anterior * 100
 
-df9 = df9.sort_values("total_envio", ascending=True)
-fig_envios = px.bar(df9, x="total_envio", y="envio_nome",title="Vendas por tipo de envio", orientation="h")
-col4.plotly_chart(fig_envios)
+#card 2 - total de pedidos --> df['coluna'].nunique(): Retorna a contagem de únicos: 3
+qtdpedidos_mensal_atual = df_filtrado[
+    (df_filtrado['data_criacao'].dt.month == hoje.month) &
+    (df_filtrado['data_criacao'].dt.year == hoje.year)
+]['pedido_numero'].nunique()
+
+qtdpedidos_mes_anterior = df_filtrado[
+    (df_filtrado['data_criacao'].dt.month == mes_anterior) &
+    (df_filtrado['data_criacao'].dt.year == ano_mes_anterior)
+]['pedido_numero'].nunique()
+
+delta2 = 0
+if qtdpedidos_mes_anterior != 0:
+    delta2 = (qtdpedidos_mensal_atual - qtdpedidos_mes_anterior) / qtdpedidos_mes_anterior * 100
+
+#card 3 - ticket medio
+ticket_medio_atual = faturamento_mensal_atual / qtdpedidos_mensal_atual
+ticket_medio_anterior = faturamento_anterior / qtdpedidos_mes_anterior
+
+delta3=0
+if ticket_medio_anterior != 0:
+    delta3 = (ticket_medio_atual - ticket_medio_anterior) / ticket_medio_anterior * 100
+
+#card 4 - total de produtos
+total_produtos_mes_atual = df_pedidos[
+    (df_pedidos['data_criacao'].dt.month == hoje.month) &
+    (df_pedidos['data_criacao'].dt.year == hoje.year)
+]['quantidade'].sum()
+
+total_produtos_mes_anterior = df_pedidos[
+    (df_pedidos['data_criacao'].dt.month == mes_anterior) &
+    (df_pedidos['data_criacao'].dt.year == ano_mes_anterior)
+]['quantidade'].sum()
+
+delta4=0
+if total_produtos_mes_anterior != 0:
+    delta4 = (total_produtos_mes_atual - total_produtos_mes_anterior) / total_produtos_mes_anterior * 100
+
+with col1:
+    st.metric(
+        label="💰 Faturamento Mês Atual",
+        value=format_currency(faturamento_mensal_atual),
+        delta=f"{delta:.2f}%"
+    )
+
+with col2:
+    st.metric(
+        label='🛍️ Qtd Pedido Mês Atual',
+        value=qtdpedidos_mensal_atual,
+        delta=f"{delta2:.2f}%"
+    )
+
+with col3:
+    st.metric(
+        label="🎯 Ticket Médio",
+        value=format_currency(ticket_medio_atual),
+        delta=f"{delta3:.2f}%"
+    )
+
+with col4:
+    st.metric(
+        label='🏷️ Total Produtos Vendidos',
+        value=total_produtos_mes_atual,
+        delta=f"{delta4:.2f}%"
+    )
+
+
+df_last12 = (df_filtrado.groupby(['data_formatada'], as_index=False)['valor_venda']).sum()
+
+
+fig_faturamento = px.bar(
+    df_last12,
+    x='data_formatada',
+    y='valor_venda',
+    text='valor_venda',
+    title='Faturamento últimos 12 meses',
+    labels={
+        'data_formatada': 'Período',
+        'valor_venda': 'Faturamento'
+    }
+)
+
+fig_faturamento.update_traces(
+    texttemplate='R$ %{text:,.2f}',  # formato monetário
+    textposition='outside',
+    textfont=dict(size=14)
+)
+
+fig_faturamento.update_layout(
+    title_x=0.5
+)
+
+st.plotly_chart(fig_faturamento, use_container_width=True)
+
+
