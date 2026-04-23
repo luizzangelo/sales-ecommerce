@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime,date
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import plotly.graph_objects as go
 
 # Configuração da página
 st.set_page_config(
@@ -21,6 +22,7 @@ st.markdown(
 hoje = datetime.today()
 
 df_pedidos = pd.read_csv('data/processed/fato_vendas.csv')
+df_clientes = pd.read_csv('data/processed/dim_cliente.csv')
 
 df_pedidos['data_criacao'] = pd.to_datetime(
     df_pedidos['data_criacao'], errors='coerce', utc=True
@@ -273,6 +275,8 @@ st.markdown('---')
 # Tabela de Top Clientes
 st.subheader('👑 Melhores Clientes da Loja - Top10')
 
+df_filtrado['ult_compr_form'] = df_filtrado['data_criacao'].dt.strftime('%d/%m/%Y')
+
 top10_clientes = (
     df_filtrado.groupby('cpf_cliente')
     .agg(
@@ -280,6 +284,7 @@ top10_clientes = (
             'endereco_entrega_nome': 'first',
             'endereco_entrega_telefone_celular': 'first',
             'valor_venda': ['sum', 'count', 'mean'],
+            'ult_compr_form':'first'
         }
     )
     .reset_index()
@@ -290,17 +295,20 @@ top10_clientes.columns = [
     'cpf_cliente',
     'nome',
     'telefone',
-    'valor_total',
-    'quantidade_compras',
-    'ticket_medio',
+    'Total em Compras',
+    'Quantidade de Compras',
+    'Ticket Medio',
+    'Última Compra'
 ]
 
-top10_clientes = top10_clientes.sort_values(by='valor_total', ascending=False)
+top10_clientes = top10_clientes.sort_values(
+    by='Total em Compras', ascending=False
+)
 
-top10_clientes['ticket_medio'] = top10_clientes['ticket_medio'].apply(
+top10_clientes['Ticket Medio'] = top10_clientes['Ticket Medio'].apply(
     format_currency
 )
-top10_clientes['valor_total'] = top10_clientes['valor_total'].apply(
+top10_clientes['Total em Compras'] = top10_clientes['Total em Compras'].apply(
     format_currency
 )
 
@@ -311,3 +319,99 @@ st.dataframe(
 )
 
 st.markdown('---')
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("🎯 Meta de Vendas Mensal")
+    meta_vendas = 10000
+    vendas_atual = faturamento_mensal_atual
+    percentual_meta = (vendas_atual / meta_vendas) * 100
+
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=percentual_meta,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "% da Meta Atingida"},
+        delta={'reference': 100, 'relative': False},
+        gauge={
+            'axis': {'range': [None, 100], 'ticksuffix': '%'},
+            'bar': {'color': "#28a388"},
+            'steps': [
+                {'range': [0, 50], 'color': '#fee2e2'},
+                {'range': [50, 75], 'color': '#fef3c7'},
+                {'range': [75, 100], 'color': '#d1fae5'}
+            ],
+            'threshold': {
+                'line': {'color': "red", 'width': 4},
+                'thickness': 0.75,
+                'value': 100
+            }
+        }
+    ))
+    fig_gauge.update_layout(height=350)
+    st.plotly_chart(fig_gauge, use_container_width=True)
+
+from datetime import date
+import pandas as pd
+
+def calcular_idade(nascimento):
+    if pd.isna(nascimento):
+        return None
+    
+    hoje = date.today()
+    
+    idade = hoje.year - nascimento.year
+    
+    if (hoje.month, hoje.day) < (nascimento.month, nascimento.day):
+        idade -= 1
+        
+    return idade
+
+def classificar_faixa_etaria(idade):
+    if pd.isna(idade):
+        return 'Desconhecido'
+    elif 0 <= idade <= 17:
+        return '0 a 17 anos'
+    elif 18 <= idade <= 23:
+        return '18 a 23 anos'
+    elif 24 <= idade <= 29:
+        return '24 a 29 anos'
+    elif 30 <= idade <= 35:
+        return '30 a 35 anos'
+    else:
+        return 'Desconhecido'
+
+df_clientes['data_nascimento'] = pd.to_datetime(df_clientes['data_nascimento'], errors='coerce')
+
+df_clientes['idade'] = df_clientes['data_nascimento'].apply(calcular_idade)
+
+df_clientes['faixa_etaria'] = df_clientes['idade'].apply(classificar_faixa_etaria)
+
+age = (
+    df_clientes.groupby('faixa_etaria', as_index=False)
+    .size()
+    .rename(columns={'size': 'qtd_clientes'})
+    .sort_values('qtd_clientes', ascending=False)
+)
+
+age['percentual_clientes'] = round(
+    age['qtd_clientes'] * 100 / age['qtd_clientes'].sum(), 2
+).astype(str) + '%'
+
+with col2:
+    st.subheader("👥 Idade da Base de Clientes")
+    fig_age = px.pie(
+        age,
+        values='qtd_clientes',
+        names='faixa_etaria',
+        title='',
+        hole=0.4,
+    )
+    fig_age.update_layout(
+        showlegend=True, legend=dict(orientation='h', yanchor='bottom', y=-0.2)
+    )
+    st.plotly_chart(fig_age, use_container_width=True)
+
+
+
