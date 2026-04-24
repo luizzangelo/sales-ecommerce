@@ -4,6 +4,18 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import plotly.graph_objects as go
+from sqlalchemy import create_engine
+
+usuario = st.secrets["DB_USER"]
+senha = st.secrets["DB_PASSWORD"]
+host = st.secrets["DB_HOST"]
+porta = st.secrets["DB_PORT"]
+banco = st.secrets["DB_NAME"]
+
+engine = create_engine(
+    f"postgresql+psycopg2://{usuario}:{senha}@{host}:{porta}/{banco}",
+    pool_pre_ping=True
+)
 
 # Configuração da página
 st.set_page_config(
@@ -21,8 +33,11 @@ st.markdown(
 
 hoje = datetime.today()
 
-df_pedidos = pd.read_csv('data/processed/fato_vendas.csv')
-df_clientes = pd.read_csv('data/processed/dim_cliente.csv')
+df_pedidos = pd.read_sql("SELECT * FROM fato_vendas", engine)
+df_clientes = pd.read_sql("SELECT * FROM dim_cliente", engine)
+
+# df_pedidos = pd.read_csv('data/processed/fato_vendas.csv')
+# df_clientes = pd.read_csv('data/processed/dim_cliente.csv')
 
 df_pedidos['data_criacao'] = pd.to_datetime(
     df_pedidos['data_criacao'], errors='coerce', utc=True
