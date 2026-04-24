@@ -1,20 +1,20 @@
-from datetime import datetime,date
+from datetime import date, datetime
 
 import pandas as pd
 import plotly.express as px
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
 from sqlalchemy import create_engine
 
-usuario = st.secrets["DB_USER"]
-senha = st.secrets["DB_PASSWORD"]
-host = st.secrets["DB_HOST"]
-porta = st.secrets["DB_PORT"]
-banco = st.secrets["DB_NAME"]
+usuario = st.secrets['DB_USER']
+senha = st.secrets['DB_PASSWORD']
+host = st.secrets['DB_HOST']
+porta = st.secrets['DB_PORT']
+banco = st.secrets['DB_NAME']
 
-engine = create_engine(
-    f"postgresql+psycopg2://{usuario}:{senha}@{host}:{porta}/{banco}",
-    pool_pre_ping=True
+engine_cloud = create_engine(
+    f'postgresql+psycopg2://{usuario}:{senha}@{host}:{porta}/{banco}',
+    pool_pre_ping=True,
 )
 
 # Configuração da página
@@ -33,11 +33,8 @@ st.markdown(
 
 hoje = datetime.today()
 
-df_pedidos = pd.read_sql("SELECT * FROM fato_vendas", engine)
-df_clientes = pd.read_sql("SELECT * FROM dim_cliente", engine)
-
-# df_pedidos = pd.read_csv('data/processed/fato_vendas.csv')
-# df_clientes = pd.read_csv('data/processed/dim_cliente.csv')
+df_pedidos = pd.read_sql('SELECT * FROM fato_vendas', engine_cloud)
+df_clientes = pd.read_sql('SELECT * FROM dim_cliente', engine_cloud)
 
 df_pedidos['data_criacao'] = pd.to_datetime(
     df_pedidos['data_criacao'], errors='coerce', utc=True
@@ -134,8 +131,16 @@ qtdpedidos_mes_anterior = filtro_mes_ano(
 delta2 = calcular_delta(qtdpedidos_mensal_atual, qtdpedidos_mes_anterior)
 
 # card 3
-ticket_medio_atual = faturamento_mensal_atual / qtdpedidos_mensal_atual
-ticket_medio_anterior = faturamento_anterior / qtdpedidos_mes_anterior
+ticket_medio_atual = (
+    faturamento_mensal_atual / qtdpedidos_mensal_atual
+    if qtdpedidos_mensal_atual != 0
+    else 0
+)
+ticket_medio_anterior = (
+    faturamento_anterior / qtdpedidos_mes_anterior
+    if qtdpedidos_mes_anterior != 0
+    else 0
+)
 
 delta3 = calcular_delta(ticket_medio_atual, ticket_medio_anterior)
 
@@ -149,11 +154,6 @@ total_produtos_mes_anterior = filtro_mes_ano(
 )['quantidade'].sum()
 
 delta4 = calcular_delta(total_produtos_mes_atual, total_produtos_mes_anterior)
-delta4 = (
-    (total_produtos_mes_atual - total_produtos_mes_anterior)
-    / total_produtos_mes_anterior
-    * 100
-)
 
 with col1:
     st.metric(
@@ -290,7 +290,9 @@ st.markdown('---')
 # Tabela de Top Clientes
 st.subheader('👑 Melhores Clientes da Loja - Top10')
 
-df_filtrado['ult_compr_form'] = df_filtrado['data_criacao'].dt.strftime('%d/%m/%Y')
+df_filtrado['ult_compr_form'] = df_filtrado['data_criacao'].dt.strftime(
+    '%d/%m/%Y'
+)
 
 top10_clientes = (
     df_filtrado.groupby('cpf_cliente')
@@ -299,7 +301,7 @@ top10_clientes = (
             'endereco_entrega_nome': 'first',
             'endereco_entrega_telefone_celular': 'first',
             'valor_venda': ['sum', 'count', 'mean'],
-            'ult_compr_form':'first'
+            'ult_compr_form': 'first',
         }
     )
     .reset_index()
@@ -313,7 +315,7 @@ top10_clientes.columns = [
     'Total em Compras',
     'Quantidade de Compras',
     'Ticket Medio',
-    'Última Compra'
+    'Última Compra',
 ]
 
 top10_clientes = top10_clientes.sort_values(
@@ -338,50 +340,55 @@ st.markdown('---')
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("🎯 Meta de Vendas Mensal")
+    st.subheader('🎯 Meta de Vendas Mensal')
     meta_vendas = 10000
     vendas_atual = faturamento_mensal_atual
     percentual_meta = (vendas_atual / meta_vendas) * 100
 
-    fig_gauge = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=percentual_meta,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "% da Meta Atingida"},
-        delta={'reference': 100, 'relative': False},
-        gauge={
-            'axis': {'range': [None, 100], 'ticksuffix': '%'},
-            'bar': {'color': "#28a388"},
-            'steps': [
-                {'range': [0, 50], 'color': '#fee2e2'},
-                {'range': [50, 75], 'color': '#fef3c7'},
-                {'range': [75, 100], 'color': '#d1fae5'}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': 100
-            }
-        }
-    ))
+    fig_gauge = go.Figure(
+        go.Indicator(
+            mode='gauge+number+delta',
+            value=percentual_meta,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': '% da Meta Atingida'},
+            delta={'reference': 100, 'relative': False},
+            gauge={
+                'axis': {'range': [None, 100], 'ticksuffix': '%'},
+                'bar': {'color': '#28a388'},
+                'steps': [
+                    {'range': [0, 50], 'color': '#fee2e2'},
+                    {'range': [50, 75], 'color': '#fef3c7'},
+                    {'range': [75, 100], 'color': '#d1fae5'},
+                ],
+                'threshold': {
+                    'line': {'color': 'red', 'width': 4},
+                    'thickness': 0.75,
+                    'value': 100,
+                },
+            },
+        )
+    )
     fig_gauge.update_layout(height=350)
     st.plotly_chart(fig_gauge, use_container_width=True)
 
 from datetime import date
+
 import pandas as pd
+
 
 def calcular_idade(nascimento):
     if pd.isna(nascimento):
         return None
-    
+
     hoje = date.today()
-    
+
     idade = hoje.year - nascimento.year
-    
+
     if (hoje.month, hoje.day) < (nascimento.month, nascimento.day):
         idade -= 1
-        
+
     return idade
+
 
 def classificar_faixa_etaria(idade):
     if pd.isna(idade):
@@ -397,11 +404,16 @@ def classificar_faixa_etaria(idade):
     else:
         return 'Desconhecido'
 
-df_clientes['data_nascimento'] = pd.to_datetime(df_clientes['data_nascimento'], errors='coerce')
+
+df_clientes['data_nascimento'] = pd.to_datetime(
+    df_clientes['data_nascimento'], errors='coerce'
+)
 
 df_clientes['idade'] = df_clientes['data_nascimento'].apply(calcular_idade)
 
-df_clientes['faixa_etaria'] = df_clientes['idade'].apply(classificar_faixa_etaria)
+df_clientes['faixa_etaria'] = df_clientes['idade'].apply(
+    classificar_faixa_etaria
+)
 
 age = (
     df_clientes.groupby('faixa_etaria', as_index=False)
@@ -410,12 +422,13 @@ age = (
     .sort_values('qtd_clientes', ascending=False)
 )
 
-age['percentual_clientes'] = round(
-    age['qtd_clientes'] * 100 / age['qtd_clientes'].sum(), 2
-).astype(str) + '%'
+age['percentual_clientes'] = (
+    round(age['qtd_clientes'] * 100 / age['qtd_clientes'].sum(), 2).astype(str)
+    + '%'
+)
 
 with col2:
-    st.subheader("👥 Idade da Base de Clientes")
+    st.subheader('👥 Idade da Base de Clientes')
     fig_age = px.pie(
         age,
         values='qtd_clientes',
@@ -427,6 +440,3 @@ with col2:
         showlegend=True, legend=dict(orientation='h', yanchor='bottom', y=-0.2)
     )
     st.plotly_chart(fig_age, use_container_width=True)
-
-
-

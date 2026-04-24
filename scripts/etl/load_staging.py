@@ -1,7 +1,14 @@
 import pandas as pd
-df_pedidos = pd.read_excel('/Users/luizangelo/Documents/sales-ecommerce/data/import_manual/LISTAR_PEDIDOS.xlsx')
-df_clientes = pd.read_excel('/Users/luizangelo/Documents/sales-ecommerce/data/import_manual/EXPORTAR_CLIENTES.xlsx')
-df_produtos = pd.read_excel('/Users/luizangelo/Documents/sales-ecommerce/data/import_manual/LISTA DE PRODUTOS.xlsx')
+
+df_pedidos = pd.read_excel(
+    '/Users/luizangelo/Documents/sales-ecommerce/data/import_manual/LISTAR_PEDIDOS.xlsx'
+)
+df_clientes = pd.read_excel(
+    '/Users/luizangelo/Documents/sales-ecommerce/data/import_manual/EXPORTAR_CLIENTES.xlsx'
+)
+df_produtos = pd.read_excel(
+    '/Users/luizangelo/Documents/sales-ecommerce/data/import_manual/LISTA DE PRODUTOS.xlsx'
+)
 
 import os
 
@@ -13,4 +20,6 @@ df_pedidos.to_csv('data/staging/pedidos.csv', index=False)
 df_clientes.to_csv('data/staging/clientes.csv', index=False)
 df_produtos.to_csv('data/staging/produtos.csv', index=False)
 
-print("✅ Staging pronto: pedidos.csv, clientes.csv e produtos.csv gerados em data/staging/")
+print(
+    '✅ Staging pronto: pedidos.csv, clientes.csv e produtos.csv gerados em data/staging/'
+)
