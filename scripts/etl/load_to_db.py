@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 
 load_dotenv()
 
-engine_local = create_engine(os.getenv('DB_LOCAL_CONN_STRING'))
+engine_local = create_engine(os.getenv('DB_CONN_STRING'))
 engine_supabase = create_engine(os.getenv('DB_SUPABASE_CONN_STRING'))
 
 df_dim_cliente = pd.read_csv('data/processed/dim_cliente.csv')
@@ -30,5 +30,5 @@ def carregar_banco(engine, nome_banco):
     print(f'✅ Carga concluída no {nome_banco}')
 
 
-carregar_banco(engine_local, 'Postgres local')
+#carregar_banco(engine_local, 'Postgres local')
 carregar_banco(engine_supabase, 'Supabase')

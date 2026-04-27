@@ -371,11 +371,6 @@ with col1:
     fig_gauge.update_layout(height=350)
     st.plotly_chart(fig_gauge, use_container_width=True)
 
-from datetime import date
-
-import pandas as pd
-
-
 def calcular_idade(nascimento):
     if pd.isna(nascimento):
         return None
