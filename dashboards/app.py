@@ -33,8 +33,39 @@ st.markdown(
 
 hoje = datetime.today()
 
-df_pedidos = pd.read_sql('SELECT * FROM fato_vendas', engine_cloud)
-df_clientes = pd.read_sql('SELECT * FROM dim_cliente', engine_cloud)
+@st.cache_data(ttl=86400)
+def carregar_dados():
+    query_pedidos = """
+        SELECT
+            pedido_numero,
+            data_criacao,
+            pedido_situacao,
+            valor_total,
+            valor_envio,
+            quantidade,
+            pagamento_nome,
+            produto_nome,
+            envio_nome,
+            cpf_cliente,
+            endereco_entrega_nome,
+            endereco_entrega_telefone_celular
+        FROM fato_vendas
+        WHERE data_criacao >= NOW() - INTERVAL '12 months'
+          AND pedido_situacao NOT IN ('Pedido Cancelado', 'Pagamento devolvido')
+    """
+
+    query_clientes = """
+        SELECT
+            data_nascimento
+        FROM dim_cliente
+        WHERE data_nascimento IS NOT NULL
+    """
+
+    df_pedidos = pd.read_sql(query_pedidos, engine_cloud)
+    df_clientes = pd.read_sql(query_clientes, engine_cloud)
+
+    return df_pedidos, df_clientes
+
 
 df_pedidos['data_criacao'] = pd.to_datetime(
     df_pedidos['data_criacao'], errors='coerce', utc=True
