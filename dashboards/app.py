@@ -66,6 +66,7 @@ def carregar_dados():
 
     return df_pedidos, df_clientes
 
+df_pedidos, df_clientes = carregar_dados()
 
 df_pedidos['data_criacao'] = pd.to_datetime(
     df_pedidos['data_criacao'], errors='coerce', utc=True
