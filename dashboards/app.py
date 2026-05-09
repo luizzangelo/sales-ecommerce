@@ -49,7 +49,7 @@ def carregar_dados():
             cpf_cliente,
             endereco_entrega_nome,
             endereco_entrega_telefone_celular
-        FROM fato_vendas
+        FROM public.fato_vendas
         WHERE data_criacao >= NOW() - INTERVAL '12 months'
           AND pedido_situacao NOT IN ('Pedido Cancelado', 'Pagamento devolvido')
     """
@@ -57,7 +57,7 @@ def carregar_dados():
     query_clientes = """
         SELECT
             data_nascimento
-        FROM dim_cliente
+        FROM public.dim_cliente
         WHERE data_nascimento IS NOT NULL
     """
 
