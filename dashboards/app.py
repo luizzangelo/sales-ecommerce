@@ -50,8 +50,8 @@ def carregar_dados():
             endereco_entrega_nome,
             endereco_entrega_telefone_celular
         FROM public.fato_vendas
-        WHERE data_criacao >= NOW() - INTERVAL '12 months'
-          AND pedido_situacao NOT IN ('Pedido Cancelado', 'Pagamento devolvido')
+        WHERE data_criacao::timestamp >= NOW() - INTERVAL '12 months'
+            AND pedido_situacao NOT IN ('Pedido Cancelado', 'Pagamento devolvido')
     """
 
     query_clientes = """
