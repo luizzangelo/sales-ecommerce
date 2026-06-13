@@ -66,6 +66,12 @@ def carregar_dados():
 
     return df_pedidos, df_clientes
 
+col_refresh, _ = st.columns([1, 8])
+
+with col_refresh:
+    if st.button("🔄 Atualizar dados"):
+        st.cache_data.clear()
+
 df_pedidos, df_clientes = carregar_dados()
 
 df_pedidos['data_criacao'] = pd.to_datetime(
