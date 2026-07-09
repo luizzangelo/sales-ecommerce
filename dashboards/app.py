@@ -262,7 +262,7 @@ fig_pedidos_last12 = px.bar(
     x='data_formatada',
     y='total_pedidos',
     text='total_pedidos',
-    color_discrete_sequence=['#0E6AC5'],
+    color_discrete_sequence=["#C57F0E"],
     title='Total de pedidos últimos 12 meses',
     labels={
         'data_formatada': 'Período',
@@ -306,7 +306,7 @@ fig_ticket_last12 = px.bar(
     x='data_formatada',
     y='ticket_medio',
     text='ticket_medio',
-    color_discrete_sequence=['#0E6AC5'],
+    color_discrete_sequence=["#9F1890"],
     title='Ticket médio últimos 12 meses',
     labels={
         'data_formatada': 'Período',
