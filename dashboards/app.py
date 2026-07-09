@@ -250,6 +250,85 @@ st.plotly_chart(fig_faturamento_last12, use_container_width=True)
 
 st.markdown('---')
 
+# gráfico de total de pedidos dos últimos 12 meses
+df_pedidos_last12 = (
+    df_filtrado.groupby('data_formatada', as_index=False)
+    .agg(total_pedidos=('pedido_numero', 'nunique'))
+    .sort_values('data_formatada')
+)
+
+fig_pedidos_last12 = px.bar(
+    df_pedidos_last12,
+    x='data_formatada',
+    y='total_pedidos',
+    text='total_pedidos',
+    color_discrete_sequence=['#0E6AC5'],
+    title='Total de pedidos últimos 12 meses',
+    labels={
+        'data_formatada': 'Período',
+        'total_pedidos': 'Total de Pedidos',
+    },
+)
+
+fig_pedidos_last12.update_yaxes(
+    range=[0, df_pedidos_last12['total_pedidos'].max() * 1.2]
+)
+
+fig_pedidos_last12.update_traces(
+    texttemplate='%{text:.0f}',
+    textposition='outside',
+    textfont=dict(size=14),
+)
+
+fig_pedidos_last12.update_layout(title_x=0.5)
+
+st.plotly_chart(fig_pedidos_last12, use_container_width=True)
+
+st.markdown('---')
+
+
+# gráfico de ticket médio dos últimos 12 meses
+df_ticket_last12 = (
+    df_filtrado.groupby('data_formatada', as_index=False)
+    .agg(
+        faturamento=('valor_venda', 'sum'),
+        total_pedidos=('pedido_numero', 'nunique'),
+    )
+    .sort_values('data_formatada')
+)
+
+df_ticket_last12['ticket_medio'] = (
+    df_ticket_last12['faturamento'] / df_ticket_last12['total_pedidos']
+)
+
+fig_ticket_last12 = px.bar(
+    df_ticket_last12,
+    x='data_formatada',
+    y='ticket_medio',
+    text='ticket_medio',
+    color_discrete_sequence=['#0E6AC5'],
+    title='Ticket médio últimos 12 meses',
+    labels={
+        'data_formatada': 'Período',
+        'ticket_medio': 'Ticket Médio',
+    },
+)
+
+fig_ticket_last12.update_yaxes(
+    range=[0, df_ticket_last12['ticket_medio'].max() * 1.2]
+)
+
+fig_ticket_last12.update_traces(
+    texttemplate='R$ %{text:,.2f}',
+    textposition='outside',
+    textfont=dict(size=14),
+)
+
+fig_ticket_last12.update_layout(title_x=0.5)
+
+st.plotly_chart(fig_ticket_last12, use_container_width=True)
+
+st.markdown('---')
 # segunda linha de graficos
 col1, col2, col3 = st.columns(3)
 
